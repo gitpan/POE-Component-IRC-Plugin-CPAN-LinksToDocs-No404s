@@ -1,6 +1,6 @@
 ---
 name: POE-Component-IRC-Plugin-CPAN-LinksToDocs-No404s
-version: 0.001
+version: 0.002
 author:
   - 'Zoffix Znet <zoffix@cpan.org>'
 abstract: link to http://search.cpan.org/ documentation from IRC (and check that all links lead to existing docs)
@@ -15,7 +15,7 @@ build_requires:
 provides:
   POE::Component::IRC::Plugin::CPAN::LinksToDocs::No404s:
     file: lib/POE/Component/IRC/Plugin/CPAN/LinksToDocs/No404s.pm
-    version: 0.001
+    version: 0.002
 generated_by: Module::Build version 0.2808
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.2.html

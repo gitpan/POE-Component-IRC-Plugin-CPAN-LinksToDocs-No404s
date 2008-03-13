@@ -3,7 +3,7 @@ package POE::Component::IRC::Plugin::CPAN::LinksToDocs::No404s;
 use warnings;
 use strict;
 
-our $VERSION = '0.001';
+our $VERSION = '0.002';
 
 use base 'POE::Component::IRC::Plugin::BasePoCoWrap';
 use POE::Component::CPAN::LinksToDocs::No404s;
@@ -30,6 +30,12 @@ sub _make_response_message {
     my $in_ref = shift;
     my $response = '';
     my @links = @{ $in_ref->{response} };
+
+    my $message_404 = quotemeta $self->{linker}->message_404;
+    
+    if ( @links > 1 and !$self->{no_filter} ) {
+        @links = grep { !/^(?:Network error|$message_404)/ } @links;
+    }
     while (
         $self->{max_length} > ( length($links[0]) + length $response )
     ) {
@@ -59,9 +65,14 @@ sub _make_poco_call {
     my $self = shift;
     my $data_ref = shift;
 
+    my %seen;
+    my $tags = join q|,|,
+                grep { not $seen{$_}++ }
+                    split q|,|, delete $data_ref->{what};
+
     $self->{poco}->link_for( {
             event       => '_poco_done',
-            tags        => delete $data_ref->{what},
+            tags        => $tags,
             map +( "_$_" => $data_ref->{$_} ),
                 keys %$data_ref,
         }
@@ -131,6 +142,9 @@ as C</msg> (private messages); although that can be configured at will.
 For predefined "tags"
 see documentation for L<CPAN::LinksToDocs::No404s> module.
 
+B<Note:> plugin filters out duplicate tags. In other words if the request
+is C<map,map,map> you'll get only one link in return.
+
 =head1 CONSTRUCTOR
 
 =head2 new
@@ -151,6 +165,7 @@ see documentation for L<CPAN::LinksToDocs::No404s> module.
                 trigger          => qr/^docs\s+(?=\S)/i,
                 listen_for_input => [ qw(public notice privmsg) ],
                 linker           => CPAN::LinksToDocs::No404s->new( tags=>{ foos => 'bars' } ),
+                no_filter        => 1,
                 max_length       => 300,
                 eat              => 1,
                 debug            => 0,
@@ -244,6 +259,18 @@ B<Defaults to:> C<[ qw(public  notice  privmsg) ]>
 B<Optional>. The C<linker> argument takes a L<CPAN::LinksToDocs::No404s>
 object (in case you want to add custom tags, change use C<ua>, etc.).
 B<Defaults to:> plain, standard L<CPAN::LinksToDocs::No404s> object.
+
+=head3 no_filter
+
+    ->new( no_filter => 1 );
+
+B<Optional>. By default plugin will filter the IRC message from all
+the network errors and 404s. If you want to prevent that and see
+a bunch of "Not found" or "Network error: blah" messages set
+C<no_filter> argument to a true value. B<Note:> the C<response_event>
+will still get full, non-filtered results even no matter of what
+the C<no_filter> argument is set to. B<Defaults to:> not set (filter all
+404s and network errors)
 
 =head3 max_length
 
